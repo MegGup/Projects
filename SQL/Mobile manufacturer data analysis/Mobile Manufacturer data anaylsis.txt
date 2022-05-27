@@ -1,0 +1,113 @@
+use db_SQLCaseStudies
+
+1. 
+select distinct(t2.state) 
+from Fact_Transactions t1
+left join dim_location t2 on t1.IdLocation=t2.IdLocation
+where year(t1.Date)>=2005
+
+2.
+select t2.State , sum(t1.Quantity) as Total_Samsung_Sold 
+from Fact_Transactions t1
+join dim_location t2 on t1.IdLocation=t2.IdLocation
+join Dim_Model t3 on t1.IdModel=t3.IdModel	
+join Dim_Manufacturer t4 on t3.IdManufacturer=t4.IdManufacturer
+where t4.Manufacturer_Name = 'Samsung'
+and t2.Country='US'
+group by t2.state
+order by sum(t1.Quantity) desc
+
+3.
+select  count(*) Num_of_Transaction, t1.IDModel,t2.ZipCode, t2.State
+from FACT_TRANSACTIONS t1
+left join DIM_LOCATION t2 on t1.IDLocation=t2.IDLocation
+group by t1.IDModel,t2.ZipCode, t2.State
+order by t2.state
+
+4.
+Select top 1 t3.Manufacturer_Name, t2.model_name, t2.idmodel, t1.totalprice
+from  Fact_Transactions t1
+inner join dim_model t2 on t1.idmodel=t2.idmodel
+inner join dim_manufacturer t3 on t3.idmanufacturer=t2.idmanufacturer
+order by totalPrice asc
+
+5.
+select t3.Manufacturer_Name, t2.Model_Name, sum(totalprice)/sum(quantity) as Avg_Price
+from FACT_TRANSACTIONS t1
+left join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+left join DIM_MANUFACTURER t3 on t2.IDManufacturer=t3.IDManufacturer
+where t3.Manufacturer_Name in (select top 5 t3.Manufacturer_Name--, sum(t1.Quantity)
+								from FACT_TRANSACTIONS t1
+								left join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+								left join DIM_MANUFACTURER t3 on t2.IDManufacturer=t3.IDManufacturer
+								group by t3.Manufacturer_Name 
+								order by sum(t1.Quantity) desc)
+group by t2.Model_Name,t3.Manufacturer_Name
+order by sum(totalprice)/sum(quantity)
+
+6.
+select avg(t1.totalprice), t2.customer_name
+from fact_transactions t1
+left join dim_customer t2 on t1.idcustomer=t2.idcustomer
+where year(t1.date)='2009'
+group by t2.customer_name
+having avg(t1.totalprice)>500
+order by avg(t1.totalprice) desc
+
+7.
+select * from 
+(select top 5 t1.IDModel --,sum(t1.quantity)
+from FACT_TRANSACTIONS t1
+where year(date) = 2008
+group by t1.IDModel
+order by sum(t1.quantity) desc) as x
+intersect
+select * from 
+(select top 5 t1.IDModel --,sum(t1.quantity) 
+from FACT_TRANSACTIONS t1
+where year(date) = 2009
+group by t1.IDModel
+order by sum(t1.quantity) desc) as u
+intersect
+select * from
+(select top 5 t1.IDModel--,sum(t1.quantity) 
+from FACT_TRANSACTIONS t1
+where year(date) = 2010
+group by t1.IDModel
+order by sum(t1.quantity) desc) as t 
+
+
+8.
+Select tt1.Manufacturer_Name as Second_largest_2009, tt2.Manufacturer_Name as Second_largest_2010 from 
+(select t3.Manufacturer_Name, sum(t1.TotalPrice) as total_sales_2009, ROW_NUMBER() OVER(order by sum(t1.TotalPrice) desc) as Ranks
+from FACT_TRANSACTIONS t1
+inner join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+inner join DIM_MANUFACTURER t3 on t2.IDManufacturer=t3.IDManufacturer
+where year(date) = 2009 
+group by  t3.Manufacturer_Name) as tt1,
+(select t3.Manufacturer_Name, sum(t1.TotalPrice) as total_sales_2010, ROW_NUMBER() OVER(order by sum(t1.TotalPrice) desc) as Ranks
+from FACT_TRANSACTIONS t1
+inner join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+inner join DIM_MANUFACTURER t3 on t2.IDManufacturer=t3.IDManufacturer
+where year(date) = 2010 
+group by  t3.Manufacturer_Name) as tt2
+where tt1.Ranks=2
+and tt2.Ranks=2
+
+9.
+select distinct(t3.Manufacturer_Name)
+from FACT_TRANSACTIONS t1
+inner join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+inner join DIM_MANUFACTURER t3 on t2.IDManufacturer=t3.IDManufacturer
+where year(date) = 2010 
+and t2.IDManufacturer not in ( select distinct(t2.IDManufacturer)
+						       from FACT_TRANSACTIONS t1
+						       inner join DIM_MODEL t2 on t1.IDModel=t2.IDModel
+						       where year(date)=2009)
+
+10.
+select top 100 t2.Customer_Name, avg(t1.totalprice) as AVG_Spend, avg(t1.quantity) as AVG_Qty, year(t1.date) as In_Year
+from FACT_TRANSACTIONS t1
+left join DIM_CUSTOMER t2 on t1.IDCustomer=t2.IDCustomer
+group by year(t1.date),t2.Customer_Name
+order by t2.Customer_Name asc, year(t1.date)asc
